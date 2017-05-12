@@ -1,3 +1,4 @@
 outputs/*
 data/*
-modles/*
+models/*
+*.pyc
