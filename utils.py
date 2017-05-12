@@ -5,18 +5,17 @@ from PIL import Image
 
 import scipy.misc
 
-imsize = 256  # desired size of the output image
+imsize = 256
 
 loader = transforms.Compose([
-    transforms.Scale(imsize),  # scale imported image
-    transforms.ToTensor()])  # transform it into a torch tensor
+    transforms.Scale(imsize),
+    transforms.ToTensor()])
 
 unloader = transforms.ToPILImage()
 
 def image_loader(image_name):
     image = Image.open(image_name)
     image = Variable(loader(image))
-    # fake batch dimension required to fit network's input dimensions
     image = image.unsqueeze(0)
     return image
 
