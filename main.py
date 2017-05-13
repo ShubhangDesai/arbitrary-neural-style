@@ -12,39 +12,28 @@ dtype = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
 
 # Content and style
 style = image_loader("styles/picasso.jpg").type(dtype)
-content = None
+content = image_loader("contents/dancing.jpg").type(dtype)
+input = image_loader("contents/dancing.jpg").type(dtype)
+input.data = torch.randn(input.data.size()).type(dtype)
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-num_epochs = 2
+num_epochs = 300
 
 def main():
-    style_cnn = StyleCNN(style)
-    cifar100 = datasets.CIFAR100('data', download=True, transform=loader)
-    train_loader = torch.utils.data.DataLoader(cifar100, batch_size=1, shuffle=True, **kwargs)
-
-    if content is not None:
-        style_cnn.eval(content)
-        return
+    style_cnn = StyleCNN(style, content, input)
 
     iter = 0
     for i in range(num_epochs):
-        for x_batch, _ in train_loader:
-            input = Variable(x_batch).type(dtype)
-            content_loss, style_loss, pastiche = style_cnn.train(input)
+        #input = Variable(x_batch).type(dtype)
+        pastiche = style_cnn.train()
 
-            if iter % 10 == 0:
-                print("Iteration: %d" % (iter))
-                print("Content loss: %f" % (content_loss.data[0]))
-                print("Style loss: %f" % (style_loss.data[0]))
+        if iter % 10 == 0:
+            print("Iteration: %d" % (iter))
 
-                path = "outputs/%d.png" % (iter)
-                save_image(pastiche, path)
+            path = "outputs/%d.png" % (iter)
+            pastiche.data.clamp_(0, 1)
+            save_image(pastiche, path)
 
-            if iter == 800:
-                break
-
-            iter += 1
-
-    style_cnn.save()
+        iter += 1
 
 main()
