@@ -17,62 +17,62 @@ class StyleCNN(object):
 
         self.transform_network = nn.Sequential(nn.ReflectionPad2d(40),
                               nn.Conv2d(3, 32, 9, stride=1, padding=4),
-                              nn.BatchNorm2d(32),
+                              nn.InstanceNorm2d(32, affine=True),
                               nn.ReLU(),
 
                               nn.Conv2d(32, 64, 3, stride=2, padding=1),
-                              nn.BatchNorm2d(64),
+                              nn.InstanceNorm2d(64, affine=True),
                               nn.ReLU(),
 
                               nn.Conv2d(64, 128, 3, stride=2, padding=1),
-                              nn.BatchNorm2d(128),
+                              nn.InstanceNorm2d(128, affine=True),
                               nn.ReLU(),
 
                               nn.Conv2d(128, 128, 3, stride=1,padding=0),
-                              nn.BatchNorm2d(128),
+                              nn.InstanceNorm2d(128, affine=True),
                               nn.ReLU(),
                               nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.BatchNorm2d(128),
-                              nn.ReLU(),
-
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.BatchNorm2d(128),
-                              nn.ReLU(),
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.BatchNorm2d(128),
+                              nn.InstanceNorm2d(128, affine=True),
                               nn.ReLU(),
 
                               nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.BatchNorm2d(128),
+                              nn.InstanceNorm2d(128, affine=True),
                               nn.ReLU(),
                               nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.BatchNorm2d(128),
-                              nn.ReLU(),
-
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.BatchNorm2d(128),
-                              nn.ReLU(),
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.BatchNorm2d(128),
+                              nn.InstanceNorm2d(128, affine=True),
                               nn.ReLU(),
 
                               nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.BatchNorm2d(128),
+                              nn.InstanceNorm2d(128, affine=True),
                               nn.ReLU(),
                               nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.BatchNorm2d(128),
+                              nn.InstanceNorm2d(128, affine=True),
+                              nn.ReLU(),
+
+                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
+                              nn.InstanceNorm2d(128, affine=True),
+                              nn.ReLU(),
+                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
+                              nn.InstanceNorm2d(128, affine=True),
+                              nn.ReLU(),
+
+                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
+                              nn.InstanceNorm2d(128, affine=True),
+                              nn.ReLU(),
+                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
+                              nn.InstanceNorm2d(128, affine=True),
                               nn.ReLU(),
 
                               nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1, output_padding=1),
-                              nn.BatchNorm2d(64),
+                              nn.InstanceNorm2d(64, affine=True),
                               nn.ReLU(),
 
                               nn.ConvTranspose2d(64, 32, 3, stride=2, padding=1, output_padding=1),
-                              nn.BatchNorm2d(32),
+                              nn.InstanceNorm2d(32, affine=True),
                               nn.ReLU(),
 
                               nn.Conv2d(32, 3, 9, stride=1, padding=4),
-                              nn.BatchNorm2d(3),
+                              nn.InstanceNorm2d(3, affine=True),
                               nn.ReLU()
                                 )
 
@@ -117,7 +117,7 @@ class StyleCNN(object):
         self.optimizer.zero_grad()
 
         content = input.clone()
-        style = self.style
+        style = self.style.clone()
         pastiche = self.transform_network(input)
         pastiche_saved = pastiche.clone()
 
