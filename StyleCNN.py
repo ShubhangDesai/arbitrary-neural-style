@@ -13,7 +13,7 @@ class StyleCNN(object):
         self.content_weight = 1
         self.style_weight = 1000
 
-        use_cuda = torch.cuda.is_available()
+        self.use_cuda = torch.cuda.is_available()
 
         self.transform_network = nn.Sequential(nn.ReflectionPad2d(40),
                               nn.Conv2d(3, 32, 9, stride=1, padding=4),
@@ -108,7 +108,7 @@ class StyleCNN(object):
         self.loss = nn.MSELoss()
         self.optimizer = optim.Adam(self.transform_network.parameters(), lr=1e-3)
 
-        if use_cuda:
+        if self.use_cuda:
             self.transform_network.cuda()
             self.loss_network.cuda()
             self.gram.cuda()
@@ -131,6 +131,9 @@ class StyleCNN(object):
             layers = [not_inplace(item) for item in layers]
 
             features = nn.Sequential(*layers)
+            if self.use_cuda:
+                features.cuda()
+
             pastiche, content, style = features(pastiche), features(content), features(style)
 
             if "c" in losses:

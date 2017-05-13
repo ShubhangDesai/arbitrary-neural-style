@@ -40,9 +40,6 @@ def main():
                 path = "outputs/%d.png" % (iter)
                 save_image(pastiche, path)
 
-            if iter == 800:
-                break
-
             iter += 1
 
     style_cnn.save()
