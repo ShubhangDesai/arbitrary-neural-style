@@ -69,20 +69,17 @@ class StyleCNN(object):
 
                 features = nn.Sequential(*layers)
                 if self.use_cuda:
-                    features.cude()
+                    features.cuda()
 
                 pastiche, content, style = features.forward(pastiche), features.forward(content), features.forward(style)
 
                 if "c" in losses:
-                    content_loss += self.loss(pastiche, content.detach())
+                    content_loss += self.loss(pastiche * self.content_weight, content.detach() * self.content_weight)
                 if "s" in losses:
                     pastiche_g, style_g = self.gram.forward(pastiche), self.gram.forward(style)
-                    style_loss += self.loss(pastiche_g, style_g.detach())
+                    style_loss += self.loss(pastiche_g * self.style_weight, style_g.detach() * self.style_weight)
 
                 start_layer = layer + 1
-
-            content_loss *= self.content_weight
-            style_loss *= self.style_weight
 
             total_loss = content_loss + style_loss
             total_loss.backward()

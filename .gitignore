@@ -2,3 +2,5 @@ outputs/*
 data/*
 models/*
 *.pyc
+.idea/*
+contents/shubhang.jpy

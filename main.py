@@ -11,20 +11,19 @@ use_cuda = torch.cuda.is_available()
 dtype = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
 
 # Content and style
-style = image_loader("styles/picasso.jpg").type(dtype)
+style = image_loader("styles/starry_night.jpg").type(dtype)
 content = image_loader("contents/dancing.jpg").type(dtype)
 input = image_loader("contents/dancing.jpg").type(dtype)
 input.data = torch.randn(input.data.size()).type(dtype)
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-num_epochs = 300
+num_epochs = 31
 
 def main():
     style_cnn = StyleCNN(style, content, input)
 
     iter = 0
     for i in range(num_epochs):
-        #input = Variable(x_batch).type(dtype)
         pastiche = style_cnn.train()
 
         if iter % 10 == 0:
