@@ -2,6 +2,7 @@ import torch.optim as optim
 import torchvision.models as models
 
 from modules.GramMatrix import *
+from modules.ScaledTanh import *
 
 class StyleCNN(object):
     def __init__(self, style):
@@ -73,7 +74,7 @@ class StyleCNN(object):
 
                               nn.Conv2d(32, 3, 9, stride=1, padding=4),
                               nn.InstanceNorm2d(3, affine=True),
-                              nn.ReLU()
+                              ScaledTanh(0, 255)
                                 )
 
         try:
