@@ -19,7 +19,7 @@ num_epochs = 2
 
 def main():
     style_cnn = StyleCNN(style)
-    coco = datasets.CocoCaptions(root='data/', annFile=None, transform=loader)
+    coco = datasets.CocoCaptions(root='data/train2014', annFile=None, transform=loader)
     train_loader = torch.utils.data.DataLoader(coco, batch_size=1, shuffle=True, **kwargs)
 
     if content is not None:
