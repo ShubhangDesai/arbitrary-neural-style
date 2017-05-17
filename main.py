@@ -15,7 +15,7 @@ style = image_loader("styles/picasso.jpg").type(dtype)
 content = None
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-num_epochs = 2
+num_epochs = 100
 
 def main():
     style_cnn = StyleCNN(style)
@@ -28,6 +28,7 @@ def main():
 
     iter = 0
     for i in range(num_epochs):
+        num_batches = 0
         for x_batch, _ in train_loader:
             input = Variable(x_batch).type(dtype)
             content_loss, style_loss, pastiche = style_cnn.train(input)
@@ -43,6 +44,10 @@ def main():
                 style_cnn.save()
 
             iter += 1
+            num_batches += 1
+
+            if num_batches == 7:
+                break
 
     style_cnn.save()
 
