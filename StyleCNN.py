@@ -74,7 +74,7 @@ class StyleCNN(object):
 
                               nn.Conv2d(32, 3, 9, stride=1, padding=4),
                               nn.InstanceNorm2d(3, affine=True),
-                              ScaledTanh(0, 255)
+                              nn.Tanh()
                                 )
 
         try:

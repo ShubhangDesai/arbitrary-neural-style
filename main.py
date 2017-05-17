@@ -19,8 +19,8 @@ num_epochs = 2
 
 def main():
     style_cnn = StyleCNN(style)
-    cifar100 = datasets.CIFAR100('data', download=True, transform=loader)
-    train_loader = torch.utils.data.DataLoader(cifar100, batch_size=1, shuffle=True, **kwargs)
+    coco = datasets.CocoCaptions(root='data/', annFile=None, transform=loader)
+    train_loader = torch.utils.data.DataLoader(coco, batch_size=1, shuffle=True, **kwargs)
 
     if content is not None:
         style_cnn.eval(content)
