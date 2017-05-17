@@ -9,6 +9,7 @@ imsize = 256
 
 loader = transforms.Compose([
     transforms.Scale(imsize),
+    transforms.CenterCrop(imsize),
     transforms.ToTensor()])
 
 unloader = transforms.ToPILImage()
