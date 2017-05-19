@@ -3,8 +3,8 @@ import torch.nn as nn
 
 class GramMatrix(nn.Module):
     def forward(self, input):
-        a, b, c, d = input.size()  # a=batch size(=1)
-        features = input.view(a * b, c * d)
-        G = torch.mm(features, features.t())
+        N, C, H, W = input.size()  # a=batch size(=1)
+        features = input.view(N, C, H * W)
+        G = torch.bmm(features, features.permute(0, 2, 1))
 
-        return G.div(a * b * c * d)
+        return G.div(C * H * W)

@@ -118,7 +118,7 @@ class StyleCNN(object):
         self.optimizer.zero_grad()
 
         content = input.clone()
-        style = self.style.clone()
+        style = self.style.clone().expand_as(input)
         pastiche = self.transform_network(input)
         pastiche.data.clamp_(0, 255)
         pastiche_saved = pastiche.clone()

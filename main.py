@@ -20,7 +20,7 @@ num_epochs = 100
 def main():
     style_cnn = StyleCNN(style)
     coco = datasets.CocoCaptions(root='data/train2014', annFile='data/annotations/captions_train2014.json', transform=loader)
-    train_loader = torch.utils.data.DataLoader(coco, batch_size=1, shuffle=False, **kwargs)
+    train_loader = torch.utils.data.DataLoader(coco, batch_size=4, shuffle=False, **kwargs)
 
     if content is not None:
         style_cnn.eval(content)
