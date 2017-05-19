@@ -12,7 +12,7 @@ class StyleCNN(object):
         self.content_layers = ['conv_4']
         self.style_layers = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
         self.content_weight = 1
-        self.style_weight = 0
+        self.style_weight = 1000
 
         self.use_cuda = torch.cuda.is_available()
 
@@ -122,7 +122,7 @@ class StyleCNN(object):
         pastiche = self.transform_network(input)
         pastiche.data.clamp_(0, 255)
         pastiche_saved = pastiche.clone()
-
+        
         content_loss = 0
         style_loss = 0
 

@@ -15,12 +15,13 @@ style = image_loader("styles/picasso.jpg").type(dtype)
 content = None
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-num_epochs = 100
+num_epochs = 5000
+N = 4
 
 def main():
     style_cnn = StyleCNN(style)
     coco = datasets.CocoCaptions(root='data/train2014', annFile='data/annotations/captions_train2014.json', transform=loader)
-    train_loader = torch.utils.data.DataLoader(coco, batch_size=4, shuffle=False, **kwargs)
+    train_loader = torch.utils.data.DataLoader(coco, batch_size=N, shuffle=False, **kwargs)
 
     if content is not None:
         style_cnn.eval(content)
@@ -37,13 +38,14 @@ def main():
                 print("Content loss: %f" % (content_loss.data[0]))
                 print("Style loss: %f" % (style_loss.data[0]))
 
-                path = "outputs/%d.png" % (iter)
-                save_image(pastiche, path)
+                path = "outputs/%d_" % (iter)
+                paths = [path + str(n) + ".png" for n in range(N)]
+                save_images(pastiche, paths)
 
             iter += 1
             num_batches += 1
 
-            if num_batches == 7:
+            if num_batches == 2:
                 break
 
 main()
