@@ -8,89 +8,48 @@ class StyleCNN(object):
     def __init__(self, style):
         super(StyleCNN, self).__init__()
 
+        # Initial configurations
         self.style = style
         self.content_layers = ['conv_4']
         self.style_layers = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
         self.content_weight = 1
         self.style_weight = 1000
+        self.gram = GramMatrix()
 
         self.use_cuda = torch.cuda.is_available()
 
-        self.transform_network = nn.Sequential(nn.ReflectionPad2d(40),
-                              nn.Conv2d(3, 32, 9, stride=1, padding=4),
-                              nn.InstanceNorm2d(32, affine=True),
-                              nn.ReLU(),
+        # Build transform network pieces
+        self.transform_network, transform_parameters = [], []
+        self.out_dims = [32, 64, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 64, 32, 3]
+        in_dim, idx = 3, 1
+        for out_dim in self.out_dims:
+            seq = nn.Sequential() if in_dim != 3 else nn.Sequential(nn.ReflectionPad2d(40))
+            name = "conv-%d" % (idx)
 
-                              nn.Conv2d(32, 64, 3, stride=2, padding=1),
-                              nn.InstanceNorm2d(64, affine=True),
-                              nn.ReLU(),
+            filter, stride, padding = 3, 1, 0
+            if in_dim == 3 or out_dim == 3:
+                filter, stride, padding = 9, 1, 4
+            elif in_dim == 64 or out_dim == 64:
+                filter, stride, padding = 3, 2, 1
 
-                              nn.Conv2d(64, 128, 3, stride=2, padding=1),
-                              nn.InstanceNorm2d(128, affine=True),
-                              nn.ReLU(),
+            conv = nn.Conv2d(in_dim, out_dim, filter, stride, padding)
+            if (in_dim == 28 and out_dim == 64) or (in_dim == 64 and out_dim == 32):
+                conv = nn.ConvTranspose2d(in_dim, out_dim, filter, stride, padding, output_padding=1)
 
-                              nn.Conv2d(128, 128, 3, stride=1,padding=0),
-                              nn.InstanceNorm2d(128, affine=True),
-                              nn.ReLU(),
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.InstanceNorm2d(128, affine=True),
-                              nn.ReLU(),
+            seq.add_module(name, conv)
+            self.transform_network.append(seq)
+            transform_parameters.append(seq.parameters())
 
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.InstanceNorm2d(128, affine=True),
-                              nn.ReLU(),
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.InstanceNorm2d(128, affine=True),
-                              nn.ReLU(),
+            in_dim = out_dim
 
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.InstanceNorm2d(128, affine=True),
-                              nn.ReLU(),
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.InstanceNorm2d(128, affine=True),
-                              nn.ReLU(),
-
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.InstanceNorm2d(128, affine=True),
-                              nn.ReLU(),
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.InstanceNorm2d(128, affine=True),
-                              nn.ReLU(),
-
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.InstanceNorm2d(128, affine=True),
-                              nn.ReLU(),
-                              nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                              nn.InstanceNorm2d(128, affine=True),
-                              nn.ReLU(),
-
-                              nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1, output_padding=1),
-                              nn.InstanceNorm2d(64, affine=True),
-                              nn.ReLU(),
-
-                              nn.ConvTranspose2d(64, 32, 3, stride=2, padding=1, output_padding=1),
-                              nn.InstanceNorm2d(32, affine=True),
-                              nn.ReLU(),
-
-                              nn.Conv2d(32, 3, 9, stride=1, padding=4),
-                              nn.InstanceNorm2d(3, affine=True),
-                              nn.ReLU()
-                                )
-
-        try:
-            self.transform_network.load_state_dict(torch.load("models/model"))
-        except IOError:
-            pass
-
+        # Download VGG and index layers we're interested in
         self.loss_network = models.vgg19(pretrained=True)
-
         self.loss_layers = []
-        index = 0
-        i = 1
+        idx, layer_i = 0, 1
         for layer in list(self.loss_network.features):
             losses = ""
             if isinstance(layer, nn.Conv2d):
-                name = "conv_" + str(i)
+                name = "conv_" + str(layer_i)
 
                 if name in self.content_layers:
                     losses += "c"
@@ -98,20 +57,20 @@ class StyleCNN(object):
                     losses += "s"
 
                 if losses != "":
-                    self.loss_layers.append((index, losses))
+                    self.loss_layers.append((idx, losses))
 
             if isinstance(layer, nn.ReLU):
-                i += 1
+                layer_i += 1
 
-            index += 1
+            idx += 1
 
-        self.gram = GramMatrix()
+        # Optimization
         self.loss = nn.MSELoss()
-        self.optimizer = optim.Adam(self.transform_network.parameters(), lr=1e-3)
+        self.optimizer = optim.Adam(transform_parameters, lr=1e-3)
 
         if self.use_cuda:
-            self.transform_network.cuda()
-            self.loss_network.cuda()
+            self.transform_network = [network.cuda() for network in self.transform_network]
+            self.loss.cuda()
             self.gram.cuda()
 
     def train(self, input):
@@ -119,7 +78,15 @@ class StyleCNN(object):
 
         content = input.clone()
         style = self.style.clone().expand_as(input)
-        pastiche = self.transform_network(input)
+
+        pastiche = input
+        for i in range(len(self.transform_network)):
+            layers, out_dim = self.transform_network[i], self.out_dims[i]
+            layers.add_module("in_" + str(i), nn.InstanceNorm2d(out_dim))
+            layers.add_module("relu_" + str(i), nn.ReLU())
+
+            pastiche = layers(pastiche)
+
         pastiche.data.clamp_(0, 255)
         pastiche_saved = pastiche.clone()
         
