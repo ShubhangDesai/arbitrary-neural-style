@@ -1,5 +1,6 @@
 import torch.optim as optim
 import torchvision.models as models
+import copy
 
 from modules.GramMatrix import *
 from modules.ScaledTanh import *
@@ -33,7 +34,7 @@ class StyleCNN(object):
                 filter, stride, padding = 3, 2, 1
 
             conv = nn.Conv2d(in_dim, out_dim, filter, stride, padding)
-            if (in_dim == 28 and out_dim == 64) or (in_dim == 64 and out_dim == 32):
+            if (in_dim == 128 and out_dim == 64) or (in_dim == 64 and out_dim == 32):
                 conv = nn.ConvTranspose2d(in_dim, out_dim, filter, stride, padding, output_padding=1)
 
             seq.add_module(name, conv)
@@ -66,10 +67,9 @@ class StyleCNN(object):
 
         # Optimization
         self.loss = nn.MSELoss()
-        self.optimizer = optim.Adam(transform_parameters, lr=1e-3)
+        self.optimizer = optim.Adam(self.transform_network[0].parameters(), lr=1e-3)
 
         if self.use_cuda:
-            self.transform_network = [network.cuda() for network in self.transform_network]
             self.loss.cuda()
             self.gram.cuda()
 
@@ -80,10 +80,13 @@ class StyleCNN(object):
         style = self.style.clone().expand_as(input)
 
         pastiche = input
-        for i in range(len(self.transform_network)):
-            layers, out_dim = self.transform_network[i], self.out_dims[i]
-            layers.add_module("in_" + str(i), nn.InstanceNorm2d(out_dim))
+        transform_network = copy.deepcopy(self.transform_network)
+        for i in range(len(transform_network)):
+            layers, out_dim = transform_network[i], self.out_dims[i]
+            layers.add_module("in_" + str(i), nn.InstanceNorm2d(out_dim, affine=True))
             layers.add_module("relu_" + str(i), nn.ReLU())
+            if self.use_cuda:
+                layers.cuda()
 
             pastiche = layers(pastiche)
 
