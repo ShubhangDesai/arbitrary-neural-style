@@ -19,9 +19,9 @@ class StyleCNN(object):
 
         self.use_cuda = torch.cuda.is_available()
 
-        self.normalization_network = nn.Sequential(nn.Conv2d(3, 32, 9, stride=1, padding=0),
-                                                   nn.Conv2d(32, 64, 9, stride=1, padding=0),
-                                                   nn.Conv2d(64, 128, 9, stride=1, padding=0),
+        self.normalization_network = nn.Sequential(nn.Conv2d(3, 32, 9, stride=2, padding=0),
+                                                   nn.Conv2d(32, 64, 9, stride=2, padding=0),
+                                                   nn.Conv2d(64, 128, 9, stride=2, padding=0),
                                                    Flatten(),
                                                    nn.Linear(625, 256),
                                                    nn.Linear(256, 32)
@@ -85,9 +85,8 @@ class StyleCNN(object):
         content = input.clone()
         style = self.style.clone()
         pastiche = input
-
+        
         norm_params = self.normalization_network.forward(style)
-        print(norm_params.size())
         style = style.expand_as(input)
 
         idx = 0
