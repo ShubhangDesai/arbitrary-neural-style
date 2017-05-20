@@ -4,6 +4,7 @@ import torchvision.models as models
 from modules.Flatten import *
 from modules.GramMatrix import *
 from modules.ScaledTanh import *
+from modules.LearnedInstanceNorm2d import *
 
 class StyleCNN(object):
     def __init__(self, style):
@@ -85,14 +86,18 @@ class StyleCNN(object):
         content = input.clone()
         style = self.style.clone()
         pastiche = input
-        
         norm_params = self.normalization_network.forward(style)
-        style = style.expand_as(input)
+        N = norm_params.size(1)
 
         idx = 0
         for layer in list(self.transform_network):
             if idx != 0:
-                layers = nn.Sequential(*[layer, nn.InstanceNorm2d(self.out_dims[idx - 1]), nn.ReLU()])
+                out_dim = self.out_dims[idx - 1]
+                weight = norm_params[:out_dim + 1, idx - 1]
+                bias = norm_params[:out_dim + 1, idx + N/2 - 1]
+                instance_norm = LearnedInstanceNorm2d(out_dim, weight, bias)
+
+                layers = nn.Sequential(*[layer, instance_norm, nn.ReLU()])
             else:
                 layers = nn.Sequential(layer)
             
@@ -109,6 +114,7 @@ class StyleCNN(object):
         style_loss = 0
 
         start_layer = 0
+        style = style.expand_as(input)
         not_inplace = lambda item: nn.ReLU(inplace=False) if isinstance(item, nn.ReLU) else item
         for layer, losses in self.loss_layers:
             layers = list(self.loss_network.features.children())[start_layer:layer+1]
@@ -131,7 +137,7 @@ class StyleCNN(object):
         total_loss = content_loss + style_loss
         total_loss.backward()
 
-        self.normalization_network.step()
+        self.normalization_optimizer.step()
         self.transform_optimizer.step()
 
         return content_loss, style_loss, pastiche_saved
