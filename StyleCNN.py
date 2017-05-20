@@ -21,63 +21,21 @@ class StyleCNN(object):
 
         self.transform_network = nn.Sequential(nn.ReflectionPad2d(40),
                                                nn.Conv2d(3, 32, 9, stride=1, padding=4),
-                                               #nn.InstanceNorm2d(32, affine=True),
-                                               #nn.ReLU(),
-
                                                nn.Conv2d(32, 64, 3, stride=2, padding=1),
-                                               #nn.InstanceNorm2d(64, affine=True),
-                                               #nn.ReLU(),
-
                                                nn.Conv2d(64, 128, 3, stride=2, padding=1),
-                                               #nn.InstanceNorm2d(128, affine=True),
-                                               #nn.ReLU(),
-
                                                nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                                               #nn.InstanceNorm2d(128, affine=True),
-                                               #nn.ReLU(),
                                                nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                                               #nn.InstanceNorm2d(128, affine=True),
-                                               #nn.ReLU(),
-
                                                nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                                               #nn.InstanceNorm2d(128, affine=True),
-                                               #nn.ReLU(),
                                                nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                                               #nn.InstanceNorm2d(128, affine=True),
-                                               #nn.ReLU(),
-
                                                nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                                               #nn.InstanceNorm2d(128, affine=True),
-                                               #nn.ReLU(),
                                                nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                                               #nn.InstanceNorm2d(128, affine=True),
-                                               #nn.ReLU(),
-
                                                nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                                               #nn.InstanceNorm2d(128, affine=True),
-                                               #nn.ReLU(),
                                                nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                                               #nn.InstanceNorm2d(128, affine=True),
-                                               #nn.ReLU(),
-
                                                nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                                               #nn.InstanceNorm2d(128, affine=True),
-                                               #nn.ReLU(),
                                                nn.Conv2d(128, 128, 3, stride=1, padding=0),
-                                               #nn.InstanceNorm2d(128, affine=True),
-                                               #nn.ReLU(),
-
                                                nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1, output_padding=1),
-                                               #nn.InstanceNorm2d(64, affine=True),
-                                               #nn.ReLU(),
-
                                                nn.ConvTranspose2d(64, 32, 3, stride=2, padding=1, output_padding=1),
-                                               #nn.InstanceNorm2d(32, affine=True),
-                                               #nn.ReLU(),
-
                                                nn.Conv2d(32, 3, 9, stride=1, padding=4),
-                                               #nn.InstanceNorm2d(3, affine=True),
-                                               #nn.ReLU()
                                                )
 
         self.out_dims = [32, 64, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 64, 32, 3]
@@ -111,20 +69,24 @@ class StyleCNN(object):
             self.gram.cuda()
 
     def train(self, input):
-        self.optimizer.zero_grad()
+        self.transform_optimizer.zero_grad()
 
         content = input.clone()
         style = self.style.clone().expand_as(input)
         pastiche = input
 
         idx = 0
-        for layer in self.transform_network.features:
+        for layer in list(self.transform_network):
+            layers = None
             if idx != 0:
-                layers = nn.Sequential(*[layer, nn.InstanceNorm2d(self.out_dims[idx]), nn.ReLU()])
-                if self.use_cuda:
-                    layers.cuda()
+                layers = nn.Sequential(*[layer, nn.InstanceNorm2d(self.out_dims[idx - 1]), nn.ReLU()])
+            else:
+                layers = nn.Sequential(layer)
+            
+            if self.use_cuda:
+                layers.cuda()
 
-                pastiche = layers(pastiche)
+            pastiche = layers(pastiche)
             idx += 1
 
         pastiche.data.clamp_(0, 255)
