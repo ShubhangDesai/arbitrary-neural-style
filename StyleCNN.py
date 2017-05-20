@@ -1,7 +1,7 @@
 import torch.optim as optim
 import torchvision.models as models
-import copy
 
+from modules.Flatten import *
 from modules.GramMatrix import *
 from modules.ScaledTanh import *
 
@@ -18,6 +18,14 @@ class StyleCNN(object):
         self.gram = GramMatrix()
 
         self.use_cuda = torch.cuda.is_available()
+
+        self.normalization_network = nn.Sequential(nn.Conv2d(3, 32, 9, stride=1, padding=0),
+                                                   nn.Conv2d(32, 64, 9, stride=1, padding=0),
+                                                   nn.Conv2d(64, 128, 9, stride=1, padding=0),
+                                                   Flatten(),
+                                                   nn.Linear(625, 256),
+                                                   nn.Linear(256, 32)
+                                                   )
 
         self.transform_network = nn.Sequential(nn.ReflectionPad2d(40),
                                                nn.Conv2d(3, 32, 9, stride=1, padding=4),
@@ -62,22 +70,28 @@ class StyleCNN(object):
             idx += 1
 
         self.loss = nn.MSELoss()
+        self.normalization_optimizer = optim.Adam(self.normalization_network.parameters(), lr=1e-3)
         self.transform_optimizer = optim.Adam(self.transform_network.parameters(), lr=1e-3)
 
         if self.use_cuda:
+            self.normalization_network.cuda()
             self.loss.cuda()
             self.gram.cuda()
 
     def train(self, input):
+        self.normalization_network.zero_grad()
         self.transform_optimizer.zero_grad()
 
         content = input.clone()
-        style = self.style.clone().expand_as(input)
+        style = self.style.clone()
         pastiche = input
+
+        norm_params = self.normalization_network.forward(style)
+        print(norm_params.size())
+        style = style.expand_as(input)
 
         idx = 0
         for layer in list(self.transform_network):
-            layers = None
             if idx != 0:
                 layers = nn.Sequential(*[layer, nn.InstanceNorm2d(self.out_dims[idx - 1]), nn.ReLU()])
             else:
@@ -118,6 +132,7 @@ class StyleCNN(object):
         total_loss = content_loss + style_loss
         total_loss.backward()
 
+        self.normalization_network.step()
         self.transform_optimizer.step()
 
         return content_loss, style_loss, pastiche_saved
