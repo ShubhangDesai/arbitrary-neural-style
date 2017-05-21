@@ -20,7 +20,8 @@ N = 4
 
 def main():
     style_cnn = StyleCNN(style)
-    coco = datasets.CocoCaptions(root='data/train2014', annFile='data/annotations/captions_train2014.json', transform=loader)
+    #coco = datasets.CocoCaptions(root='data/train2014', annFile='data/annotations/captions_train2014.json', transform=loader)
+    coco = datasets.CIFAR100(root='data', train=True, transform=loader)
     train_loader = torch.utils.data.DataLoader(coco, batch_size=N, shuffle=False, **kwargs)
 
     if content is not None:

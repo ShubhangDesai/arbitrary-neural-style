@@ -1,5 +1,6 @@
 import torch.optim as optim
 import torchvision.models as models
+from torch.nn import Parameter
 
 from modules.Flatten import *
 from modules.GramMatrix import *
@@ -93,9 +94,9 @@ class StyleCNN(object):
         for layer in list(self.transform_network):
             if idx != 0:
                 out_dim = self.out_dims[idx - 1]
-                weight = norm_params[:out_dim + 1, idx - 1]
-                bias = norm_params[:out_dim + 1, idx + N/2 - 1]
-                instance_norm = LearnedInstanceNorm2d(out_dim, weight, bias)
+                weight = norm_params[:out_dim, idx - 1]
+                bias = norm_params[:out_dim, idx + int(N/2) - 1]
+                instance_norm = LearnedInstanceNorm2d(out_dim, Parameter(weight.data), Parameter(bias.data))
 
                 layers = nn.Sequential(*[layer, instance_norm, nn.ReLU()])
             else:

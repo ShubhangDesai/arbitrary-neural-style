@@ -19,6 +19,15 @@ class LearnedInstanceNorm2d(nn.Module):
         self.running_mean.zero_()
         self.running_var.fill_(1)
 
+    def _check_input_dim(self, input):
+        if input.dim() != 4:
+            raise ValueError('expected 4D input (got {}D input)'
+                             .format(input.dim()))
+
+        if input.size(1) != self.running_mean.nelement():
+            raise ValueError('got {}-feature tensor, expected {}'
+                             .format(input.size(1), self.num_features))
+
     def forward(self, input):
         self._check_input_dim(input)
 
