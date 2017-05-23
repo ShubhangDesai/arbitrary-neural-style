@@ -94,9 +94,11 @@ class StyleCNN(object):
         for layer in list(self.transform_network):
             if idx != 0:
                 out_dim = self.out_dims[idx - 1]
-                weight = norm_params[:out_dim, idx - 1]
-                bias = norm_params[:out_dim, idx + int(N/2) - 1]
-                instance_norm = LearnedInstanceNorm2d(out_dim, Parameter(weight.data), Parameter(bias.data))
+                #weight = norm_params[:out_dim, idx - 1]
+                #bias = norm_params[:out_dim, idx + int(N/2) - 1]
+                weight = torch.ones(out_dim)
+                bias = torch.zeros(out_dim)
+                instance_norm = LearnedInstanceNorm2d(out_dim, Parameter(weight), Parameter(bias))
 
                 layers = nn.Sequential(*[layer, instance_norm, nn.ReLU()])
             else:

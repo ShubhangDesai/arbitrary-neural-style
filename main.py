@@ -15,13 +15,13 @@ style = image_loader("styles/picasso.jpg").type(dtype)
 content = None
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-num_epochs = 5000
-N = 4
+num_epochs = 2500
+N = 1
 
 def main():
     style_cnn = StyleCNN(style)
-    #coco = datasets.CocoCaptions(root='data/train2014', annFile='data/annotations/captions_train2014.json', transform=loader)
-    coco = datasets.CIFAR100(root='data', train=True, transform=loader)
+    coco = datasets.CocoCaptions(root='data/train2014', annFile='data/annotations/captions_train2014.json', transform=loader)
+    #coco = datasets.CIFAR100(root='data', train=True, transform=loader)
     train_loader = torch.utils.data.DataLoader(coco, batch_size=N, shuffle=False, **kwargs)
 
     if content is not None:
