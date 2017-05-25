@@ -72,7 +72,12 @@ class StyleCNN(object):
             idx += 1
 
         self.loss = nn.MSELoss()
-        self.normalization_optimizer = optim.Adam(self.normalization_network.parameters(), lr=1e-3)
+        norm_params = torch.ones(128, 32)
+        norm_params[:, 16:].zero_()
+        print(norm_params)
+        self.norm_params = Parameter(norm_params)
+        #self.normalization_optimizer = optim.Adam(self.normalization_network.parameters(), lr=1e-3)
+        self.normalization_optimizer = optim.Adam([self.norm_params], lr=1e-3)
         self.transform_optimizer = optim.Adam(self.transform_network.parameters(), lr=1e-3)
 
         if self.use_cuda:
@@ -87,17 +92,18 @@ class StyleCNN(object):
         content = input.clone()
         style = self.style.clone()
         pastiche = input
-        norm_params = self.normalization_network.forward(style)
+        #norm_params = self.normalization_network.forward(style)
+        norm_params = self.norm_params
         N = norm_params.size(1)
 
         idx = 0
         for layer in list(self.transform_network):
             if idx != 0:
                 out_dim = self.out_dims[idx - 1]
-                #weight = norm_params[:out_dim, idx - 1]
-                #bias = norm_params[:out_dim, idx + int(N/2) - 1]
-                weight = torch.ones(out_dim)
-                bias = torch.zeros(out_dim)
+                weight = norm_params[:out_dim, idx - 1].data
+                bias = norm_params[:out_dim, idx + int(N/2) - 1].data
+                #weight = torch.ones(out_dim)
+                #bias = torch.zeros(out_dim)
                 instance_norm = LearnedInstanceNorm2d(out_dim, Parameter(weight), Parameter(bias))
 
                 layers = nn.Sequential(*[layer, instance_norm, nn.ReLU()])

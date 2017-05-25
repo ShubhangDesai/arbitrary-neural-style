@@ -15,7 +15,7 @@ style = image_loader("styles/picasso.jpg").type(dtype)
 content = None
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-num_epochs = 2500
+num_epochs = 5000
 N = 1
 
 def main():
