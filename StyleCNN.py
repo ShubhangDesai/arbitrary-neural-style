@@ -72,13 +72,16 @@ class StyleCNN(object):
             idx += 1
 
         self.loss = nn.MSELoss()
-        norm_params = torch.ones(128, 32)
-        norm_params[:, 16:].zero_()
-        print(norm_params)
+        norm_params = torch.FloatTensor(128, 32)
+        torch.randn(128, 16, out=norm_params[:, :16]).mul_(0.01).add_(1)
+        torch.randn(128, 16, out=norm_params[:, 16:]).mul_(0.01)
+        #norm_params[:, 16:].zero_()
         self.norm_params = Parameter(norm_params)
         #self.normalization_optimizer = optim.Adam(self.normalization_network.parameters(), lr=1e-3)
         self.normalization_optimizer = optim.Adam([self.norm_params], lr=1e-3)
         self.transform_optimizer = optim.Adam(self.transform_network.parameters(), lr=1e-3)
+
+        print("test")
 
         if self.use_cuda:
             self.normalization_network.cuda()
@@ -156,3 +159,6 @@ class StyleCNN(object):
 
     def save(self):
         torch.save(self.transform_network.state_dict(), "models/model")
+
+    def norm_test(self):
+        return self.norm_params

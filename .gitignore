@@ -4,3 +4,4 @@ models/*
 *.pyc
 .idea/*
 .env/*
+*.ipynb
