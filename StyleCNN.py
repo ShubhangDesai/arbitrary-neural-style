@@ -21,12 +21,15 @@ class StyleCNN(object):
 
         self.use_cuda = torch.cuda.is_available()
 
+        final_linear = nn.Linear(256, 32)
+        torch.randn(final_linear.weight.size(), out=final_linear.weight.data).mul_(0.01)
+        final_linear.bias.data[:15].fill_(1)
         self.normalization_network = nn.Sequential(nn.Conv2d(3, 32, 9, stride=2, padding=0),
                                                    nn.Conv2d(32, 64, 9, stride=2, padding=0),
                                                    nn.Conv2d(64, 128, 9, stride=2, padding=0),
                                                    Flatten(),
                                                    nn.Linear(625, 256),
-                                                   nn.Linear(256, 32)
+                                                   final_linear
                                                    )
 
         self.transform_network = nn.Sequential(nn.ReflectionPad2d(40),
@@ -76,12 +79,10 @@ class StyleCNN(object):
         torch.randn(128, 16, out=norm_params[:, :16]).mul_(0.01).add_(1)
         torch.randn(128, 16, out=norm_params[:, 16:]).mul_(0.01)
         #norm_params[:, 16:].zero_()
-        self.norm_params = Parameter(norm_params)
-        #self.normalization_optimizer = optim.Adam(self.normalization_network.parameters(), lr=1e-3)
-        self.normalization_optimizer = optim.Adam([self.norm_params], lr=1e-3)
+        #self.norm_params = Parameter(norm_params)
+        self.normalization_optimizer = optim.Adam(self.normalization_network.parameters(), lr=1e-3)
+        #self.normalization_optimizer = optim.Adam([self.norm_params], lr=1e-3)
         self.transform_optimizer = optim.Adam(self.transform_network.parameters(), lr=1e-3)
-
-        print("test")
 
         if self.use_cuda:
             self.normalization_network.cuda()
@@ -95,8 +96,8 @@ class StyleCNN(object):
         content = input.clone()
         style = self.style.clone()
         pastiche = input
-        #norm_params = self.normalization_network.forward(style)
-        norm_params = self.norm_params
+        norm_params = self.normalization_network.forward(style)
+        #norm_params = self.norm_params
         N = norm_params.size(1)
 
         idx = 0
@@ -161,4 +162,6 @@ class StyleCNN(object):
         torch.save(self.transform_network.state_dict(), "models/model")
 
     def norm_test(self):
-        return self.norm_params
+        style = self.style.clone()
+        norm_params = self.normalization_network.forward(style)
+        return norm_params
