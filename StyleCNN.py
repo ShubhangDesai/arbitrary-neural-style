@@ -23,6 +23,7 @@ class StyleCNN(object):
 
         final_linear = nn.Linear(256, 32)
         torch.randn(final_linear.weight.size(), out=final_linear.weight.data).mul_(0.01)
+        final_linear.bias.data.zero_()
         final_linear.bias.data[:15].fill_(1)
         self.normalization_network = nn.Sequential(nn.Conv2d(3, 32, 9, stride=2, padding=0),
                                                    nn.Conv2d(32, 64, 9, stride=2, padding=0),
@@ -76,10 +77,12 @@ class StyleCNN(object):
 
         self.loss = nn.MSELoss()
         norm_params = torch.FloatTensor(128, 32)
-        torch.randn(128, 16, out=norm_params[:, :16]).mul_(0.01).add_(1)
-        torch.randn(128, 16, out=norm_params[:, 16:]).mul_(0.01)
+        #torch.randn(128, 16, out=norm_params[:, :15]).mul_(0.01).add_(1)
+        #torch.randn(128, 16, out=norm_params[:, 16:]).mul_(0.01)
+        norm_params[:, :15].normal_(1, 0.01)
+        norm_params[:, 16:].normal_(0, 0.01)
         #norm_params[:, 16:].zero_()
-        #self.norm_params = Parameter(norm_params)
+        self.norm_params = Parameter(norm_params)
         self.normalization_optimizer = optim.Adam(self.normalization_network.parameters(), lr=1e-3)
         #self.normalization_optimizer = optim.Adam([self.norm_params], lr=1e-3)
         self.transform_optimizer = optim.Adam(self.transform_network.parameters(), lr=1e-3)
