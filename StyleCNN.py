@@ -8,11 +8,10 @@ from modules.ScaledTanh import *
 from modules.LearnedInstanceNorm2d import *
 
 class StyleCNN(object):
-    def __init__(self, style):
+    def __init__(self):
         super(StyleCNN, self).__init__()
 
         # Initial configurations
-        self.style = style
         self.content_layers = ['conv_4']
         self.style_layers = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
         self.content_weight = 1
@@ -51,6 +50,8 @@ class StyleCNN(object):
                                                nn.ConvTranspose2d(64, 32, 3, stride=2, padding=1, output_padding=1),
                                                nn.Conv2d(32, 3, 9, stride=1, padding=4),
                                                )
+        self.transform_network.load_state_dict(torch.load("models/transform_net_ckpt"))
+        self.normalization_network.load_state_dict(torch.load("models/normalization_net_ckpt"))
 
         self.out_dims = [32, 64, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 64, 32, 3]
 
@@ -92,13 +93,11 @@ class StyleCNN(object):
             self.loss.cuda()
             self.gram.cuda()
 
-    def train(self, input):
+    def train(self, content, style):
         self.normalization_network.zero_grad()
         self.transform_optimizer.zero_grad()
 
-        content = input.clone()
-        style = self.style.clone()
-        pastiche = input
+        pastiche = content.clone()
         norm_params = self.normalization_network.forward(style)
         #norm_params = self.norm_params
         N = norm_params.size(1)
@@ -130,7 +129,7 @@ class StyleCNN(object):
         style_loss = 0
 
         start_layer = 0
-        style = style.expand_as(input)
+        style = style.expand_as(content)
         not_inplace = lambda item: nn.ReLU(inplace=False) if isinstance(item, nn.ReLU) else item
         for layer, losses in self.loss_layers:
             layers = list(self.loss_network.features.children())[start_layer:layer+1]
@@ -158,11 +157,38 @@ class StyleCNN(object):
 
         return content_loss, style_loss, pastiche_saved
 
-    def eval(self, input):
-        return self.transform_network.forward(input)
+    def eval(self, content, style):
+        norm_params = self.normalization_network.forward(style)
+        #norm_params = self.norm_params
+        N = norm_params.size(1)
+
+        idx = 0
+        for layer in list(self.transform_network):
+            if idx != 0:
+                out_dim = self.out_dims[idx - 1]
+                weight = norm_params[:out_dim, idx - 1].data
+                bias = norm_params[:out_dim, idx + int(N/2) - 1].data
+                #weight = torch.ones(out_dim)
+                #bias = torch.zeros(out_dim)
+                instance_norm = LearnedInstanceNorm2d(out_dim, Parameter(weight), Parameter(bias))
+
+                layers = nn.Sequential(*[layer, instance_norm, nn.ReLU()])
+            else:
+                layers = nn.Sequential(layer)
+            
+            if self.use_cuda:
+                layers.cuda()
+
+            content = layers(content)
+            idx += 1
+
+        content.data.clamp_(0, 255)
+        return content
+
 
     def save(self):
-        torch.save(self.transform_network.state_dict(), "models/model")
+        torch.save(self.normalization_network.state_dict(), "models/normalization_net_ckpt")
+        torch.save(self.transform_network.state_dict(), "models/transform_net_ckpt")
 
     def norm_test(self):
         style = self.style.clone()
