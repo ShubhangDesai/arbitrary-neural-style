@@ -15,8 +15,11 @@ num_iters = 40000
 N = 4
 
 # Test-time images
-content = image_loader("contents/test.jpg").type(dtype)
-style = image_loader("styles/udnie.jpg").type(dtype)
+#content = image_loader("contents/test.jpg").type(dtype)
+#style = image_loader("styles/starry_night_crop.jpg").type(dtype)
+
+content = None
+style = None
 
 def main():
     style_cnn = StyleCNN()
@@ -36,7 +39,7 @@ def main():
 
     images = get_content_and_style(content_loader, style_loader, num_iters=num_iters)
     for i, x in enumerate(images):
-        i += 34410
+        #i += 25010
         content_batch, style_batch = x[0][0], x[1][0]
         content_batch, style_batch = Variable(content_batch).type(dtype), Variable(style_batch).type(dtype)
 

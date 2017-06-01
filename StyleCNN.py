@@ -14,7 +14,7 @@ class StyleCNN(object):
         # Initial configurations
         self.content_layers = ['conv_4']
         self.style_layers = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
-        self.content_weight = 1
+        self.content_weight = 5
         self.style_weight = 1000
         self.gram = GramMatrix()
 
@@ -50,8 +50,11 @@ class StyleCNN(object):
                                                nn.ConvTranspose2d(64, 32, 3, stride=2, padding=1, output_padding=1),
                                                nn.Conv2d(32, 3, 9, stride=1, padding=4),
                                                )
-        self.transform_network.load_state_dict(torch.load("models/transform_net_ckpt"))
-        self.normalization_network.load_state_dict(torch.load("models/normalization_net_ckpt"))
+        try:
+            self.transform_network.load_state_dict(torch.load("models/transform_net_ckpt"))
+            self.normalization_network.load_state_dict(torch.load("models/normalization_net_ckpt"))
+        except(IOError):
+            pass
 
         self.out_dims = [32, 64, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 64, 32, 3]
 
@@ -80,12 +83,8 @@ class StyleCNN(object):
         norm_params = torch.FloatTensor(128, 32)
         torch.randn(128, 16, out=norm_params[:, :16]).mul_(0.01).add_(1)
         torch.randn(128, 16, out=norm_params[:, 16:]).mul_(0.01)
-        #norm_params[:, :15].normal_(1, 0.01)
-        #norm_params[:, 16:].normal_(0, 0.01)
-        #norm_params[:, 16:].zero_()
         self.norm_params = Parameter(norm_params)
         self.normalization_optimizer = optim.Adam(self.normalization_network.parameters(), lr=1e-3)
-        #self.normalization_optimizer = optim.Adam([self.norm_params], lr=1e-3)
         self.transform_optimizer = optim.Adam(self.transform_network.parameters(), lr=1e-3)
 
         if self.use_cuda:
@@ -99,7 +98,6 @@ class StyleCNN(object):
 
         pastiche = content.clone()
         norm_params = self.normalization_network.forward(style)
-        #norm_params = self.norm_params
         N = norm_params.size(1)
 
         idx = 0
@@ -108,8 +106,6 @@ class StyleCNN(object):
                 out_dim = self.out_dims[idx - 1]
                 weight = norm_params[:out_dim, idx - 1].data
                 bias = norm_params[:out_dim, idx + int(N/2) - 1].data
-                #weight = torch.ones(out_dim)
-                #bias = torch.zeros(out_dim)
                 instance_norm = LearnedInstanceNorm2d(out_dim, Parameter(weight), Parameter(bias))
 
                 layers = nn.Sequential(*[layer, instance_norm, nn.ReLU()])
@@ -159,7 +155,6 @@ class StyleCNN(object):
 
     def eval(self, content, style):
         norm_params = self.normalization_network.forward(style)
-        #norm_params = self.norm_params
         N = norm_params.size(1)
 
         idx = 0
@@ -168,8 +163,6 @@ class StyleCNN(object):
                 out_dim = self.out_dims[idx - 1]
                 weight = norm_params[:out_dim, idx - 1].data
                 bias = norm_params[:out_dim, idx + int(N/2) - 1].data
-                #weight = torch.ones(out_dim)
-                #bias = torch.zeros(out_dim)
                 instance_norm = LearnedInstanceNorm2d(out_dim, Parameter(weight), Parameter(bias))
 
                 layers = nn.Sequential(*[layer, instance_norm, nn.ReLU()])
