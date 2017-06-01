@@ -1,6 +1,5 @@
 outputs/*
 data/*
-models/*
 *.pyc
 .idea/*
 .env/*
