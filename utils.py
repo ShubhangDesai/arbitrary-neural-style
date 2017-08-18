@@ -19,8 +19,11 @@ def image_loader(image_name):
     image = image.unsqueeze(0)
     return image
 
-def save_image(input, path):
-    image = input.data.clone().cpu()
-    image = image.view(3, imsize, imsize)
-    image = unloader(image)
-    scipy.misc.imsave(path, image)
+def save_images(input, paths):
+    N = input.size()[0]
+    images = input.data.clone().cpu()
+    for n in range(N):
+        image = images[n]
+        image = image.view(3, imsize, imsize)
+        image = unloader(image)
+        scipy.misc.imsave(paths[n], image)
