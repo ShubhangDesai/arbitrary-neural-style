@@ -1,8 +1,5 @@
 from __future__ import print_function
 
-import torch.utils.data
-import torchvision.datasets as datasets
-
 from StyleCNN import *
 from utils import *
 
@@ -22,17 +19,14 @@ num_epochs = 31
 def main():
     style_cnn = StyleCNN(style, content, input)
 
-    iter = 0
     for i in range(num_epochs):
         pastiche = style_cnn.train()
 
-        if iter % 10 == 0:
-            print("Iteration: %d" % (iter))
+        if i % 10 == 0:
+            print("Iteration: %d" % (i))
 
-            path = "outputs/%d.png" % (iter)
+            path = "outputs/%d.png" % (i)
             pastiche.data.clamp_(0, 1)
             save_image(pastiche, path)
-
-        iter += 1
 
 main()

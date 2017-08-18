@@ -20,27 +20,6 @@ class StyleCNN(object):
 
         self.loss_network = models.vgg19(pretrained=True)
 
-        self.loss_layers = []
-        index = 0
-        i = 1
-        for layer in list(self.loss_network.features):
-            losses = ""
-            if isinstance(layer, nn.Conv2d):
-                name = "conv_" + str(i)
-
-                if name in self.content_layers:
-                    losses += "c"
-                if name in self.style_layers:
-                    losses += "s"
-
-                if losses != "":
-                    self.loss_layers.append((index, losses))
-
-            if isinstance(layer, nn.ReLU):
-                i += 1
-
-            index += 1
-
         self.gram = GramMatrix()
         self.loss = nn.MSELoss()
         self.optimizer = optim.LBFGS([self.pastiche])
@@ -61,25 +40,26 @@ class StyleCNN(object):
             content_loss = 0
             style_loss = 0
 
-            start_layer = 0
-            not_inplace = lambda item: nn.ReLU(inplace=False) if isinstance(item, nn.ReLU) else item
-            for layer, losses in self.loss_layers:
-                layers = list(self.loss_network.features.children())[start_layer:layer+1]
-                layers = [not_inplace(item) for item in layers]
-
-                features = nn.Sequential(*layers)
+            i = 1
+            not_inplace = lambda layer: nn.ReLU(inplace=False) if isinstance(layer, nn.ReLU) else layer
+            for layer in list(self.loss_network.features):
+                layer = not_inplace(layer)
                 if self.use_cuda:
-                    features.cuda()
+                    layer.cuda()
 
-                pastiche, content, style = features.forward(pastiche), features.forward(content), features.forward(style)
+                pastiche, content, style = layer.forward(pastiche), layer.forward(content), layer.forward(style)
 
-                if "c" in losses:
-                    content_loss += self.loss(pastiche * self.content_weight, content.detach() * self.content_weight)
-                if "s" in losses:
-                    pastiche_g, style_g = self.gram.forward(pastiche), self.gram.forward(style)
-                    style_loss += self.loss(pastiche_g * self.style_weight, style_g.detach() * self.style_weight)
+                if isinstance(layer, nn.Conv2d):
+                    name = "conv_" + str(i)
 
-                start_layer = layer + 1
+                    if name in self.content_layers:
+                        content_loss += self.loss(pastiche * self.content_weight, content.detach() * self.content_weight)
+                    if name in self.style_layers:
+                        pastiche_g, style_g = self.gram.forward(pastiche), self.gram.forward(style)
+                        style_loss += self.loss(pastiche_g * self.style_weight, style_g.detach() * self.style_weight)
+
+                if isinstance(layer, nn.ReLU):
+                    i += 1
 
             total_loss = content_loss + style_loss
             total_loss.backward()
